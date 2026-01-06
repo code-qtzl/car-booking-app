@@ -1,0 +1,11 @@
+{
+	"name": "capstone-car-booking-app",
+	"version": "1.0.0",
+	"license": "ISC",
+	"author": "Andres Zepeda",
+	"scripts": {
+		"install:all": "cd backend && npm install && cd ../frontend && npm install",
+		"dev": "echo \"🫣 Wrong folder?: 'npm run dev' should be run in ./frontend directory\" && echo \"💡 Try: 'cd frontend && npm run dev'\" && exit 1",
+		"server": "echo \"🫣 Wrong folder?: 'npm run server' should be run in ./backend directory\" && echo \"💡 Try: 'cd backend && npm run server'\" && exit 1"
+	}
+}
