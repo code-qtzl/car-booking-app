@@ -129,11 +129,26 @@ const carSchema = new mongoose.Schema(
 	},
 );
 
-// Create compound indexes for common search patterns
+// Create compound indexes for common search patterns and performance optimization
 carSchema.index({ make: 1, model: 1 });
 carSchema.index({ dailyRate: 1, availabilityStatus: 1 });
 carSchema.index({ fuelType: 1, transmission: 1 });
 carSchema.index({ isActive: 1, availabilityStatus: 1 });
+carSchema.index({ createdAt: -1 }); // For default sorting
+carSchema.index({ year: -1, dailyRate: 1 }); // For year and price sorting
+carSchema.index({ seatingCapacity: 1, fuelType: 1 }); // For capacity and fuel filtering
+
+// Additional performance optimization indexes
+carSchema.index({ isActive: 1, availabilityStatus: 1, dailyRate: 1 }); // For filtered listings with price sorting
+carSchema.index({ isActive: 1, make: 1, model: 1 }); // For make/model searches
+carSchema.index({
+	isActive: 1,
+	fuelType: 1,
+	transmission: 1,
+	seatingCapacity: 1,
+}); // For multi-filter queries
+carSchema.index({ isActive: 1, createdAt: -1, _id: 1 }); // For consistent pagination
+carSchema.index({ availabilityStatus: 1, dailyRate: 1, createdAt: -1 }); // For available cars sorted by price/date
 
 // Text index for search functionality
 carSchema.index({
@@ -141,6 +156,9 @@ carSchema.index({
 	model: 'text',
 	description: 'text',
 });
+
+// Sparse index for optional fields that are frequently queried
+// Note: licensePlate already has unique: true in schema definition, so we don't need a separate index
 
 // Custom validation for year to ensure it's reasonable
 carSchema.pre('validate', function (next) {

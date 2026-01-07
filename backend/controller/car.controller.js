@@ -21,8 +21,8 @@ const getAllCars = async (req, res) => {
 		};
 
 		const options = {
-			limit: req.query.limit,
-			skip: req.query.skip,
+			limit: parseInt(req.query.limit) || 12,
+			skip: parseInt(req.query.skip) || 0,
 			sortBy: req.query.sortBy,
 			sortOrder: req.query.sortOrder,
 		};
@@ -42,14 +42,26 @@ const getAllCars = async (req, res) => {
 
 		const result = await carService.findCars(filters, options);
 
+		// Set enhanced cache headers for performance optimization
+		res.set({
+			'Cache-Control': 'public, max-age=600, s-maxage=1200', // 10 min client, 20 min CDN
+			ETag: `"cars-${JSON.stringify(filters)}-${JSON.stringify(
+				options,
+			)}"`,
+			'Last-Modified': new Date().toUTCString(),
+			Vary: 'Accept-Encoding',
+		});
+
 		res.json({
 			success: true,
 			data: result.cars,
 			pagination: {
 				totalCount: result.totalCount,
-				page: result.page,
+				currentPage: result.page,
+				totalPages: Math.ceil(result.totalCount / options.limit),
 				limit: result.limit,
 				hasMore: result.hasMore,
+				hasPrevious: result.page > 1,
 			},
 		});
 	} catch (error) {
