@@ -12,7 +12,8 @@ const connectDB = async () => {
 			maxPoolSize: 10, // Maintain up to 10 socket connections
 			serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
 			socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-			bufferMaxEntries: 0, // Disable mongoose buffering
+
+			// Mongoose-specific options (not MongoDB driver options)
 			bufferCommands: false, // Disable mongoose buffering
 
 			// Performance optimizations
@@ -23,6 +24,12 @@ const connectDB = async () => {
 			monitorCommands: process.env.NODE_ENV === 'development',
 		};
 
+		// Check if MONGO_URL is defined
+		if (!process.env.MONGO_URL) {
+			throw new Error('MONGO_URL environment variable is not defined');
+		}
+
+		console.log('Attempting to connect to MongoDB...');
 		await mongoose.connect(process.env.MONGO_URL, connectionOptions);
 
 		console.log('MongoDB Connected with performance optimizations');
@@ -47,8 +54,20 @@ const connectDB = async () => {
 			process.exit(0);
 		});
 	} catch (error) {
-		console.error('DB Connection Failed', error);
-		process.exit(1);
+		console.error('DB Connection Failed:', error.message);
+		console.error(
+			'Please ensure MongoDB is running and the connection string is correct',
+		);
+		console.error('Current MONGO_URL:', process.env.MONGO_URL);
+
+		// Don't exit in development to allow for easier debugging
+		if (process.env.NODE_ENV === 'production') {
+			process.exit(1);
+		} else {
+			console.log(
+				'Continuing in development mode without database connection...',
+			);
+		}
 	}
 };
 
