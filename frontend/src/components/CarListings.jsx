@@ -49,9 +49,25 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				params.append('minSeating', filters.minSeating);
 			}
 
-			params.append('sortBy', sortBy);
-			params.append('page', currentPage);
-			params.append('limit', 12);
+			// Map frontend sort values to backend format
+			const sortMapping = {
+				make: { sortBy: 'make', sortOrder: 'asc' },
+				price: { sortBy: 'dailyRate', sortOrder: 'asc' },
+				priceDesc: { sortBy: 'dailyRate', sortOrder: 'desc' },
+				year: { sortBy: 'year', sortOrder: 'desc' },
+				yearDesc: { sortBy: 'year', sortOrder: 'asc' },
+			};
+
+			const sortConfig = sortMapping[sortBy] || {
+				sortBy: 'make',
+				sortOrder: 'asc',
+			};
+			params.append('sortBy', sortConfig.sortBy);
+			params.append('sortOrder', sortConfig.sortOrder);
+
+			const limit = 12;
+			params.append('limit', limit);
+			params.append('skip', (currentPage - 1) * limit);
 
 			const response = await axios.get(`/api/cars?${params.toString()}`);
 
