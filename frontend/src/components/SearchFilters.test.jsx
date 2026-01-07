@@ -1,13 +1,17 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import SearchFilters from './SearchFilters';
 
 // Mock the useSearchParams hook
-const mockSetSearchParams = jest.fn();
-jest.mock('react-router-dom', () => ({
-	...jest.requireActual('react-router-dom'),
-	useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
-}));
+const mockSetSearchParams = vi.fn();
+vi.mock('react-router-dom', async () => {
+	const actual = await vi.importActual('react-router-dom');
+	return {
+		...actual,
+		useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
+	};
+});
 
 // Wrapper component for router context
 const RouterWrapper = ({ children }) => (
@@ -15,12 +19,12 @@ const RouterWrapper = ({ children }) => (
 );
 
 describe('SearchFilters Component', () => {
-	const mockOnFilterChange = jest.fn();
-	const mockOnSearch = jest.fn();
-	const mockOnSortChange = jest.fn();
+	const mockOnFilterChange = vi.fn();
+	const mockOnSearch = vi.fn();
+	const mockOnSortChange = vi.fn();
 
 	beforeEach(() => {
-		jest.clearAllMocks();
+		vi.clearAllMocks();
 	});
 
 	test('renders search input and filters toggle', () => {

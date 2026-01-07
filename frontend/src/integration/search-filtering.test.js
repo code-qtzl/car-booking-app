@@ -4,14 +4,15 @@
  */
 
 import axios from 'axios';
+import { vi } from 'vitest';
 
 // Mock axios for testing
-jest.mock('axios');
+vi.mock('axios');
 const mockedAxios = axios;
 
 describe('Search and Filtering Integration', () => {
 	beforeEach(() => {
-		jest.clearAllMocks();
+		vi.clearAllMocks();
 	});
 
 	test('search query is properly formatted for API call', () => {

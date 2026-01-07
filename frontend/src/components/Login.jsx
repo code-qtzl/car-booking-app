@@ -1,12 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { signIn } from '../service/login.service';
+import authService from '../service/auth.service';
 // import './Login.css';
 
 function Login() {
+	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
 		userType: 'customer',
 	});
+	const [error, setError] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -14,12 +20,43 @@ function Login() {
 			...prev,
 			[name]: value,
 		}));
+		setError(''); // Clear error when user types
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
-		console.log('Login attempt:', formData);
-		// TODO: Implement login logic
+		setError('');
+		setIsLoading(true);
+
+		try {
+			const loginData = {
+				emailId: formData.email,
+				password: formData.password,
+			};
+
+			const response = await signIn(loginData);
+			
+			if (response.data && response.data.user) {
+				const user = response.data.user;
+				
+				// Store user session using auth service
+				authService.setUserSession(user);
+				
+				// Navigate based on user role
+				if (user.typeOfUser === 'ADMIN') {
+					navigate('/admin');
+				} else {
+					navigate('/customer');
+				}
+			} else {
+				throw new Error('Invalid response from server');
+			}
+		} catch (err) {
+			setError(err.message || 'Login failed. Please check your credentials.');
+			console.error('Login error:', err);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	const handleReset = () => {
@@ -28,11 +65,25 @@ function Login() {
 			password: '',
 			userType: 'customer',
 		});
+		setError('');
 	};
 
 	return (
 		<div className='container'>
 			<h2>Login Page</h2>
+			{error && (
+				<div
+					style={{
+						color: 'red',
+						marginBottom: '1rem',
+						padding: '0.5rem',
+						backgroundColor: 'rgba(255, 0, 0, 0.1)',
+						borderRadius: '4px',
+					}}
+				>
+					{error}
+				</div>
+			)}
 			<form onSubmit={handleSubmit} className='login-form'>
 				<div className='form-group'>
 					<label htmlFor='email'>Email:</label>
@@ -44,6 +95,7 @@ function Login() {
 						onChange={handleChange}
 						required
 						placeholder='Enter your email'
+						disabled={isLoading}
 					/>
 				</div>
 
@@ -57,38 +109,13 @@ function Login() {
 						onChange={handleChange}
 						required
 						placeholder='Enter your password'
+						disabled={isLoading}
 					/>
 				</div>
 
-				<label>Type of User:</label>
-				<fieldset>
-					<div className='radio-group'>
-						<label className='radio-label'>
-							<input
-								type='radio'
-								name='userType'
-								value='admin'
-								checked={formData.userType === 'admin'}
-								onChange={handleChange}
-							/>
-							Admin
-						</label>
-						<label className='radio-label'>
-							<input
-								type='radio'
-								name='userType'
-								value='customer'
-								checked={formData.userType === 'customer'}
-								onChange={handleChange}
-							/>
-							Customer
-						</label>
-					</div>
-				</fieldset>
-
 				<div className='button-group'>
-					<button type='submit' className='btn btn-signin'>
-						Sign In
+					<button type='submit' className='btn btn-signin' disabled={isLoading}>
+						{isLoading ? 'Signing In...' : 'Sign In'}
 					</button>
 				</div>
 				<fieldset>
@@ -96,6 +123,7 @@ function Login() {
 						type='button'
 						onClick={handleReset}
 						className='btn btn-reset'
+						disabled={isLoading}
 					>
 						Reset
 					</button>
@@ -105,4 +133,5 @@ function Login() {
 		</div>
 	);
 }
+export default Login;
 export default Login;

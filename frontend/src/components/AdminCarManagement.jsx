@@ -21,13 +21,24 @@ const AdminCarManagement = () => {
 			setLoading(true);
 			setError(null);
 
+			const userId = localStorage.getItem('userId');
+			if (!userId) {
+				throw new Error('Authentication required');
+			}
+
 			const response = await fetch('/api/cars', {
 				headers: {
-					'x-user-id': localStorage.getItem('userId'), // Simple auth for demo
+					'x-user-id': userId,
+					'Content-Type': 'application/json',
 				},
 			});
 
 			if (!response.ok) {
+				if (response.status === 401) {
+					throw new Error(
+						'Authentication failed. Please log in again.',
+					);
+				}
 				throw new Error('Failed to fetch cars');
 			}
 
@@ -58,14 +69,29 @@ const AdminCarManagement = () => {
 		}
 
 		try {
+			const userId = localStorage.getItem('userId');
+			if (!userId) {
+				throw new Error('Authentication required');
+			}
+
 			const response = await fetch(`/api/cars/${carId}`, {
 				method: 'DELETE',
 				headers: {
-					'x-user-id': localStorage.getItem('userId'),
+					'x-user-id': userId,
+					'Content-Type': 'application/json',
 				},
 			});
 
 			if (!response.ok) {
+				if (response.status === 401) {
+					throw new Error(
+						'Authentication failed. Please log in again.',
+					);
+				} else if (response.status === 403) {
+					throw new Error(
+						'Admin access required for this operation.',
+					);
+				}
 				throw new Error('Failed to delete car');
 			}
 
@@ -78,6 +104,11 @@ const AdminCarManagement = () => {
 
 	const handleFormSubmit = async (carData) => {
 		try {
+			const userId = localStorage.getItem('userId');
+			if (!userId) {
+				throw new Error('Authentication required');
+			}
+
 			const url =
 				formMode === 'add'
 					? '/api/cars'
@@ -88,12 +119,21 @@ const AdminCarManagement = () => {
 				method,
 				headers: {
 					'Content-Type': 'application/json',
-					'x-user-id': localStorage.getItem('userId'),
+					'x-user-id': userId,
 				},
 				body: JSON.stringify(carData),
 			});
 
 			if (!response.ok) {
+				if (response.status === 401) {
+					throw new Error(
+						'Authentication failed. Please log in again.',
+					);
+				} else if (response.status === 403) {
+					throw new Error(
+						'Admin access required for this operation.',
+					);
+				}
 				const errorData = await response.json();
 				throw new Error(
 					errorData.error?.message || 'Failed to save car',

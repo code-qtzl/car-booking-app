@@ -33,12 +33,13 @@ const authenticateUser = async (req, res, next) => {
 			});
 		}
 
-		// Attach user to request object
+		// Attach user to request object with proper role mapping
 		req.user = {
 			id: user._id,
 			name: user.name,
 			emailId: user.emailId,
-			role: user.role || 'customer',
+			role: user.typeOfUser === 'ADMIN' ? 'admin' : 'customer',
+			typeOfUser: user.typeOfUser,
 		};
 
 		next();

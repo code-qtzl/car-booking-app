@@ -8,6 +8,9 @@
 		"build": "vite build",
 		"lint": "eslint .",
 		"preview": "vite preview",
+		"test": "vitest --run",
+		"test:watch": "vitest",
+		"test:ui": "vitest --ui",
 		"server": "echo \"🫣 Wrong folder?: 'npm run backend' should be run in ./backend directory\" && echo \"💡 Try: 'cd backend && npm run backend'\" && exit 1"
 	},
 	"dependencies": {
@@ -21,6 +24,9 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.1",
+		"@testing-library/jest-dom": "^6.6.3",
+		"@testing-library/react": "^16.1.0",
+		"@testing-library/user-event": "^14.5.2",
 		"@types/react": "^19.2.5",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^5.1.1",
@@ -28,6 +34,8 @@
 		"eslint-plugin-react-hooks": "^7.0.1",
 		"eslint-plugin-react-refresh": "^0.4.24",
 		"globals": "^16.5.0",
-		"vite": "^7.2.4"
+		"jsdom": "^26.0.0",
+		"vite": "^7.2.4",
+		"vitest": "^2.1.8"
 	}
 }

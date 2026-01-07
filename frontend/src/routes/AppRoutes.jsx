@@ -5,6 +5,7 @@ import CustomerDashboard from '../pages/CustomerDashboard';
 import CarListingsPage from '../pages/CarListingsPage';
 import CarDetailsPage from '../pages/CarDetailsPage';
 import AdminRoute from '../components/AdminRoute';
+import ProtectedRoute from '../components/ProtectedRoute';
 import { Route, Routes } from 'react-router-dom';
 
 const AppRoutes = () => {
@@ -20,11 +21,35 @@ const AppRoutes = () => {
 					</AdminRoute>
 				}
 			/>
-			<Route path='/customer' element={<CustomerDashboard />} />
-			<Route path='/cars' element={<CarListingsPage />} />
-			<Route path='/cars/:carId' element={<CarDetailsPage />} />
+			<Route 
+				path='/customer' 
+				element={
+					<ProtectedRoute requireAuth={true}>
+						<CustomerDashboard />
+					</ProtectedRoute>
+				} 
+			/>
+			{/* Car browsing routes - accessible to all authenticated users */}
+			<Route 
+				path='/cars' 
+				element={
+					<ProtectedRoute requireAuth={false}>
+						<CarListingsPage />
+					</ProtectedRoute>
+				} 
+			/>
+			<Route 
+				path='/cars/:carId' 
+				element={
+					<ProtectedRoute requireAuth={false}>
+						<CarDetailsPage />
+					</ProtectedRoute>
+				} 
+			/>
 		</Routes>
 	);
 };
+
+export default AppRoutes;
 
 export default AppRoutes;

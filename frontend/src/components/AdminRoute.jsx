@@ -17,12 +17,30 @@ const AdminRoute = ({ children }) => {
 					return;
 				}
 
-				// In a real application, you would verify the token with the server
-				// For now, we'll trust the stored role
-				if (userRole === 'admin') {
-					setIsAdmin(true);
-				} else {
-					setIsAdmin(false);
+				// Verify admin access with the backend
+				try {
+					const response = await fetch('/api/cars/admin/cache/stats', {
+						method: 'GET',
+						headers: {
+							'x-user-id': userId,
+							'Content-Type': 'application/json',
+						},
+					});
+
+					if (response.ok) {
+						// If the admin endpoint is accessible, user is admin
+						setIsAdmin(true);
+					} else if (response.status === 403) {
+						// Forbidden - not an admin
+						setIsAdmin(false);
+					} else {
+						// Other errors - fall back to stored role
+						setIsAdmin(userRole === 'admin');
+					}
+				} catch (error) {
+					// Network error - fall back to stored role
+					console.warn('Could not verify admin access with server, using stored role');
+					setIsAdmin(userRole === 'admin');
 				}
 			} catch (error) {
 				console.error('Error checking admin access:', error);
@@ -56,5 +74,7 @@ const AdminRoute = ({ children }) => {
 
 	return children;
 };
+
+export default AdminRoute;
 
 export default AdminRoute;
