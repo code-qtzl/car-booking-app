@@ -90,8 +90,8 @@ describe('Search and Filtering Integration', () => {
 		// Verify the API was called with correct parameters
 		expect(mockedAxios.get).toHaveBeenCalledWith(expectedUrl);
 
-		// Verify URL contains expected parameters
-		expect(expectedUrl).toContain('search=toyota%20camry');
+		// Verify URL contains expected parameters (URLSearchParams uses + for spaces)
+		expect(expectedUrl).toContain('search=toyota+camry');
 		expect(expectedUrl).toContain('priceMin=50');
 		expect(expectedUrl).toContain('priceMax=200');
 		expect(expectedUrl).toContain('fuelType=Gasoline');

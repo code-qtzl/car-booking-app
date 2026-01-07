@@ -2,13 +2,8 @@ const mongoose = require('mongoose');
 const fc = require('fast-check');
 const Car = require('./model/car.model');
 
-/**
- * Feature: car-listing-browsing, Property 7: Admin car creation with validation
- * Validates: Requirements 4.2, 6.1, 6.4
- *
- * Property: For any car data submitted by an admin, the system should save valid cars
- * to the database and reject invalid cars with appropriate error messages
- */
+// Global counter to ensure unique license plates across all test runs
+let globalTestCounter = 0;
 
 describe('Car Data Validation Property Tests', () => {
 	beforeAll(async () => {
@@ -27,8 +22,17 @@ describe('Car Data Validation Property Tests', () => {
 	});
 
 	beforeEach(async () => {
-		// Clear the cars collection before each test
+		// Clear the cars collection before each test and reset indexes
 		await Car.deleteMany({});
+		// Also drop and recreate indexes to ensure clean state
+		try {
+			await Car.collection.dropIndexes();
+			await Car.createIndexes();
+		} catch (error) {
+			// Ignore errors if indexes don't exist yet
+		}
+		// Reset global counter
+		globalTestCounter = 0;
 	});
 
 	// Generator for valid car data
@@ -133,13 +137,12 @@ describe('Car Data Validation Property Tests', () => {
 	test('Property 7: Valid car data should be saved successfully', async () => {
 		await fc.assert(
 			fc.asyncProperty(validCarArbitrary, async (carData) => {
-				// Make license plate unique for each test
-				const uniqueLicensePlate = `${
-					carData.licensePlate
-				}${Date.now()}${Math.random()
-					.toString(36)
-					.substr(2, 5)}`.substr(0, 10);
-				carData.licensePlate = uniqueLicensePlate;
+				// Generate truly unique license plate using process ID and high-resolution time
+				const processId = process.pid.toString().slice(-3);
+				const hrTime = process.hrtime.bigint().toString().slice(-8);
+				const uniqueId =
+					`${processId}${hrTime}${++globalTestCounter}`.slice(-10);
+				carData.licensePlate = `T${uniqueId}`.substr(0, 10);
 
 				const car = new Car(carData);
 
