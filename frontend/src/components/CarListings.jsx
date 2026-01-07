@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CarCard from './CarCard';
-import axios from 'axios';
+import { apiClient, formatErrorMessage } from '../utils/networkUtils';
 
 const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 	const navigate = useNavigate();
@@ -181,7 +181,7 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				}
 			}
 
-			const response = await axios.get(`/api/cars?${queryString}`, {
+			const response = await apiClient.get(`/api/cars?${queryString}`, {
 				// Enhanced request configuration for better performance
 				timeout: 10000, // 10 second timeout
 				headers: {
@@ -215,11 +215,8 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 			}
 		} catch (err) {
 			console.error('Error fetching cars:', err);
-			setError(
-				err.response?.data?.message ||
-					err.message ||
-					'Failed to load cars',
-			);
+			const errorMessage = formatErrorMessage(err);
+			setError(errorMessage);
 			if (resetList) {
 				setCars([]);
 				setPagination({
@@ -312,7 +309,7 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				}
 			}
 
-			const response = await axios.get(`/api/cars?${queryString}`, {
+			const response = await apiClient.get(`/api/cars?${queryString}`, {
 				timeout: 10000,
 				headers: {
 					Accept: 'application/json',
@@ -337,6 +334,8 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 			}
 		} catch (err) {
 			console.error('Error loading more cars:', err);
+			const errorMessage = formatErrorMessage(err);
+			setError(errorMessage);
 		} finally {
 			setLoadingMore(false);
 		}

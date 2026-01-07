@@ -2,6 +2,7 @@ const express = require('express');
 const userRoutes = require('./router/user.router');
 const carRoutes = require('./router/car.router');
 const { errorHandler } = require('./middleware/auth.middleware');
+const { enhancedErrorHandler } = require('./middleware/validation.middleware');
 
 const app = express();
 // adding the middleware
@@ -31,6 +32,6 @@ app.use('/api/login', userRoutes);
 app.use('/api/cars', carRoutes);
 
 // Error handling middleware (should be last)
-app.use(errorHandler);
+app.use(enhancedErrorHandler);
 
 module.exports = app;

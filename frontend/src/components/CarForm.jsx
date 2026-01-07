@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import ImageUpload from './ImageUpload';
+import useFormValidation from '../hooks/useFormValidation';
+import {
+	formatErrorMessage,
+	extractValidationErrors,
+	isValidationError,
+} from '../utils/networkUtils';
+import '../styles/ErrorHandling.css';
 
 const CarForm = ({ car, mode, onSubmit, onCancel }) => {
-	const [formData, setFormData] = useState({
+	const initialValues = {
 		make: '',
 		model: '',
 		year: new Date().getFullYear(),
@@ -15,16 +22,97 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 		licensePlate: '',
 		availabilityStatus: 'Available',
 		images: [],
+	};
+
+	// Enhanced validation rules
+	const validationRules = {
+		make: {
+			required: 'Make is required',
+			type: 'string',
+			minLength: 1,
+			maxLength: 50,
+			minLengthMessage: 'Make must be at least 1 character',
+			maxLengthMessage: 'Make cannot exceed 50 characters',
+		},
+		model: {
+			required: 'Model is required',
+			type: 'string',
+			minLength: 1,
+			maxLength: 50,
+			minLengthMessage: 'Model must be at least 1 character',
+			maxLengthMessage: 'Model cannot exceed 50 characters',
+		},
+		year: {
+			required: 'Year is required',
+			type: 'number',
+			min: 2000,
+			max: new Date().getFullYear() + 1,
+			minMessage: 'Rental cars must be from year 2000 or later',
+			maxMessage: 'Car year cannot be more than one year in the future',
+		},
+		dailyRate: {
+			required: 'Daily rate is required',
+			type: 'number',
+			min: 0.01,
+			max: 10000,
+			minMessage: 'Daily rate must be greater than 0',
+			maxMessage: 'Daily rate cannot exceed $10,000',
+		},
+		licensePlate: {
+			required: 'License plate is required',
+			type: 'string',
+			minLength: 3,
+			maxLength: 10,
+			pattern: '^[A-Z0-9\\-\\s]+$',
+			minLengthMessage: 'License plate must be at least 3 characters',
+			maxLengthMessage: 'License plate cannot exceed 10 characters',
+			patternMessage:
+				'License plate can only contain letters, numbers, hyphens, and spaces',
+		},
+		seatingCapacity: {
+			required: 'Seating capacity is required',
+			type: 'number',
+			min: 1,
+			max: 15,
+			minMessage: 'Seating capacity must be at least 1',
+			maxMessage: 'Rental cars cannot have more than 15 seats',
+		},
+		description: {
+			type: 'string',
+			maxLength: 1000,
+			maxLengthMessage: 'Description cannot exceed 1000 characters',
+		},
+	};
+
+	const {
+		values,
+		errors,
+		touched,
+		isValid,
+		isValidating,
+		handleChange,
+		handleBlur,
+		validate,
+		reset,
+		setServerErrors,
+		getFieldProps,
+		getFieldError,
+		hasFieldError,
+		setValues,
+	} = useFormValidation(initialValues, validationRules, {
+		validateOnChange: true,
+		validateOnBlur: true,
+		debounceMs: 300,
 	});
 
-	const [errors, setErrors] = useState({});
 	const [loading, setLoading] = useState(false);
+	const [submitError, setSubmitError] = useState('');
 	const [newFeature, setNewFeature] = useState('');
 
 	// Populate form with car data when editing
 	useEffect(() => {
 		if (car && mode === 'edit') {
-			setFormData({
+			const carData = {
 				make: car.make || '',
 				model: car.model || '',
 				year: car.year || new Date().getFullYear(),
@@ -37,117 +125,76 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 				licensePlate: car.licensePlate || '',
 				availabilityStatus: car.availabilityStatus || 'Available',
 				images: car.images || [],
-			});
+			};
+			setValues(carData);
 		}
-	}, [car, mode]);
+	}, [car, mode, setValues]);
 
-	const handleInputChange = (e) => {
-		const { name, value, type } = e.target;
-		setFormData((prev) => ({
-			...prev,
-			[name]: type === 'number' ? parseFloat(value) || '' : value,
-		}));
-
-		// Clear error when user starts typing
-		if (errors[name]) {
-			setErrors((prev) => ({
-				...prev,
-				[name]: '',
-			}));
+	const handleInputChange = (fieldName, value) => {
+		// Convert value based on field type
+		let processedValue = value;
+		if (
+			fieldName === 'year' ||
+			fieldName === 'dailyRate' ||
+			fieldName === 'seatingCapacity'
+		) {
+			processedValue = value === '' ? '' : parseFloat(value) || '';
 		}
+		if (fieldName === 'licensePlate') {
+			processedValue = value.toUpperCase();
+		}
+
+		handleChange(fieldName, processedValue);
 	};
 
 	const handleAddFeature = () => {
-		if (
-			newFeature.trim() &&
-			!formData.features.includes(newFeature.trim())
-		) {
-			setFormData((prev) => ({
-				...prev,
-				features: [...prev.features, newFeature.trim()],
-			}));
+		if (newFeature.trim() && !values.features.includes(newFeature.trim())) {
+			const updatedFeatures = [...values.features, newFeature.trim()];
+			handleChange('features', updatedFeatures);
 			setNewFeature('');
 		}
 	};
 
 	const handleRemoveFeature = (featureToRemove) => {
-		setFormData((prev) => ({
-			...prev,
-			features: prev.features.filter(
-				(feature) => feature !== featureToRemove,
-			),
-		}));
+		const updatedFeatures = values.features.filter(
+			(feature) => feature !== featureToRemove,
+		);
+		handleChange('features', updatedFeatures);
 	};
 
 	const handleImagesChange = (images) => {
-		setFormData((prev) => ({
-			...prev,
-			images,
-		}));
-	};
-
-	const validateForm = () => {
-		const newErrors = {};
-
-		// Required fields validation
-		if (!formData.make.trim()) newErrors.make = 'Make is required';
-		if (!formData.model.trim()) newErrors.model = 'Model is required';
-		if (!formData.year) newErrors.year = 'Year is required';
-		if (!formData.dailyRate) newErrors.dailyRate = 'Daily rate is required';
-		if (!formData.licensePlate.trim())
-			newErrors.licensePlate = 'License plate is required';
-
-		// Business rules validation
-		const currentYear = new Date().getFullYear();
-		if (formData.year < 2000) {
-			newErrors.year = 'Rental cars must be from year 2000 or later';
-		}
-		if (formData.year > currentYear + 1) {
-			newErrors.year =
-				'Car year cannot be more than one year in the future';
-		}
-
-		if (formData.dailyRate <= 0) {
-			newErrors.dailyRate = 'Daily rate must be greater than 0';
-		}
-		if (formData.dailyRate > 10000) {
-			newErrors.dailyRate = 'Daily rate cannot exceed $10,000';
-		}
-
-		if (formData.seatingCapacity < 1) {
-			newErrors.seatingCapacity = 'Seating capacity must be at least 1';
-		}
-		if (formData.seatingCapacity > 15) {
-			newErrors.seatingCapacity =
-				'Rental cars cannot have more than 15 seats';
-		}
-
-		if (
-			formData.licensePlate.length < 3 ||
-			formData.licensePlate.length > 10
-		) {
-			newErrors.licensePlate =
-				'License plate must be between 3 and 10 characters';
-		}
-
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0;
+		handleChange('images', images);
 	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
-		if (!validateForm()) {
+		// Validate form
+		if (!validate()) {
+			setSubmitError('Please fix the errors above before submitting.');
 			return;
 		}
 
 		setLoading(true);
-		setErrors({});
+		setSubmitError('');
 
 		try {
-			await onSubmit(formData);
+			await onSubmit(values);
 		} catch (err) {
-			setErrors({ submit: err.message });
+			console.error('Form submission error:', err);
+
+			// Handle validation errors from server
+			if (isValidationError(err)) {
+				const serverErrors = extractValidationErrors(err);
+				setServerErrors(serverErrors);
+				setSubmitError(
+					'Please fix the validation errors and try again.',
+				);
+			} else {
+				// Handle other errors
+				const errorMessage = formatErrorMessage(err);
+				setSubmitError(errorMessage);
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -166,9 +213,7 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 				</button>
 			</div>
 
-			{errors.submit && (
-				<div className='error-message'>{errors.submit}</div>
-			)}
+			{submitError && <div className='error-message'>{submitError}</div>}
 
 			<div className='form-grid'>
 				<div className='form-group'>
@@ -177,13 +222,18 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 						type='text'
 						id='make'
 						name='make'
-						value={formData.make}
-						onChange={handleInputChange}
-						className={errors.make ? 'error' : ''}
+						value={values.make}
+						onChange={(e) =>
+							handleInputChange('make', e.target.value)
+						}
+						onBlur={() => handleBlur('make')}
+						className={hasFieldError('make') ? 'error' : ''}
 						placeholder='e.g., Toyota'
 					/>
-					{errors.make && (
-						<span className='error-text'>{errors.make}</span>
+					{getFieldError('make') && (
+						<span className='error-text'>
+							{getFieldError('make')}
+						</span>
 					)}
 				</div>
 
@@ -193,13 +243,18 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 						type='text'
 						id='model'
 						name='model'
-						value={formData.model}
-						onChange={handleInputChange}
-						className={errors.model ? 'error' : ''}
+						value={values.model}
+						onChange={(e) =>
+							handleInputChange('model', e.target.value)
+						}
+						onBlur={() => handleBlur('model')}
+						className={hasFieldError('model') ? 'error' : ''}
 						placeholder='e.g., Camry'
 					/>
-					{errors.model && (
-						<span className='error-text'>{errors.model}</span>
+					{getFieldError('model') && (
+						<span className='error-text'>
+							{getFieldError('model')}
+						</span>
 					)}
 				</div>
 
@@ -209,14 +264,19 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 						type='number'
 						id='year'
 						name='year'
-						value={formData.year}
-						onChange={handleInputChange}
-						className={errors.year ? 'error' : ''}
+						value={values.year}
+						onChange={(e) =>
+							handleInputChange('year', e.target.value)
+						}
+						onBlur={() => handleBlur('year')}
+						className={hasFieldError('year') ? 'error' : ''}
 						min='2000'
 						max={new Date().getFullYear() + 1}
 					/>
-					{errors.year && (
-						<span className='error-text'>{errors.year}</span>
+					{getFieldError('year') && (
+						<span className='error-text'>
+							{getFieldError('year')}
+						</span>
 					)}
 				</div>
 
@@ -226,16 +286,21 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 						type='number'
 						id='dailyRate'
 						name='dailyRate'
-						value={formData.dailyRate}
-						onChange={handleInputChange}
-						className={errors.dailyRate ? 'error' : ''}
+						value={values.dailyRate}
+						onChange={(e) =>
+							handleInputChange('dailyRate', e.target.value)
+						}
+						onBlur={() => handleBlur('dailyRate')}
+						className={hasFieldError('dailyRate') ? 'error' : ''}
 						min='0'
 						max='10000'
 						step='0.01'
 						placeholder='e.g., 50.00'
 					/>
-					{errors.dailyRate && (
-						<span className='error-text'>{errors.dailyRate}</span>
+					{getFieldError('dailyRate') && (
+						<span className='error-text'>
+							{getFieldError('dailyRate')}
+						</span>
 					)}
 				</div>
 
@@ -244,8 +309,11 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 					<select
 						id='fuelType'
 						name='fuelType'
-						value={formData.fuelType}
-						onChange={handleInputChange}
+						value={values.fuelType}
+						onChange={(e) =>
+							handleInputChange('fuelType', e.target.value)
+						}
+						onBlur={() => handleBlur('fuelType')}
 					>
 						{fuelTypes.map((type) => (
 							<option key={type} value={type}>
@@ -260,8 +328,11 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 					<select
 						id='transmission'
 						name='transmission'
-						value={formData.transmission}
-						onChange={handleInputChange}
+						value={values.transmission}
+						onChange={(e) =>
+							handleInputChange('transmission', e.target.value)
+						}
+						onBlur={() => handleBlur('transmission')}
 					>
 						{transmissionTypes.map((type) => (
 							<option key={type} value={type}>
@@ -277,15 +348,20 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 						type='number'
 						id='seatingCapacity'
 						name='seatingCapacity'
-						value={formData.seatingCapacity}
-						onChange={handleInputChange}
-						className={errors.seatingCapacity ? 'error' : ''}
+						value={values.seatingCapacity}
+						onChange={(e) =>
+							handleInputChange('seatingCapacity', e.target.value)
+						}
+						onBlur={() => handleBlur('seatingCapacity')}
+						className={
+							hasFieldError('seatingCapacity') ? 'error' : ''
+						}
 						min='1'
 						max='15'
 					/>
-					{errors.seatingCapacity && (
+					{getFieldError('seatingCapacity') && (
 						<span className='error-text'>
-							{errors.seatingCapacity}
+							{getFieldError('seatingCapacity')}
 						</span>
 					)}
 				</div>
@@ -296,15 +372,18 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 						type='text'
 						id='licensePlate'
 						name='licensePlate'
-						value={formData.licensePlate}
-						onChange={handleInputChange}
-						className={errors.licensePlate ? 'error' : ''}
+						value={values.licensePlate}
+						onChange={(e) =>
+							handleInputChange('licensePlate', e.target.value)
+						}
+						onBlur={() => handleBlur('licensePlate')}
+						className={hasFieldError('licensePlate') ? 'error' : ''}
 						placeholder='e.g., ABC123'
 						maxLength='10'
 					/>
-					{errors.licensePlate && (
+					{getFieldError('licensePlate') && (
 						<span className='error-text'>
-							{errors.licensePlate}
+							{getFieldError('licensePlate')}
 						</span>
 					)}
 				</div>
@@ -316,8 +395,14 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 					<select
 						id='availabilityStatus'
 						name='availabilityStatus'
-						value={formData.availabilityStatus}
-						onChange={handleInputChange}
+						value={values.availabilityStatus}
+						onChange={(e) =>
+							handleInputChange(
+								'availabilityStatus',
+								e.target.value,
+							)
+						}
+						onBlur={() => handleBlur('availabilityStatus')}
 					>
 						{availabilityStatuses.map((status) => (
 							<option key={status} value={status}>
@@ -333,11 +418,24 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 				<textarea
 					id='description'
 					name='description'
-					value={formData.description}
-					onChange={handleInputChange}
+					value={values.description}
+					onChange={(e) =>
+						handleInputChange('description', e.target.value)
+					}
+					onBlur={() => handleBlur('description')}
+					className={hasFieldError('description') ? 'error' : ''}
 					rows='3'
 					placeholder='Optional description of the car...'
+					maxLength='1000'
 				/>
+				{getFieldError('description') && (
+					<span className='error-text'>
+						{getFieldError('description')}
+					</span>
+				)}
+				<small className='char-count'>
+					{values.description.length}/1000 characters
+				</small>
 			</div>
 
 			<div className='form-group full-width'>
@@ -358,7 +456,7 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 					</button>
 				</div>
 				<div className='features-list'>
-					{formData.features.map((feature, index) => (
+					{values.features.map((feature, index) => (
 						<span key={index} className='feature-tag'>
 							{feature}
 							<button
@@ -376,7 +474,7 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 			<div className='form-group full-width'>
 				<label>Car Images</label>
 				<ImageUpload
-					images={formData.images}
+					images={values.images}
 					onImagesChange={handleImagesChange}
 					carId={car?._id}
 				/>
@@ -389,7 +487,7 @@ const CarForm = ({ car, mode, onSubmit, onCancel }) => {
 				<button
 					type='submit'
 					className='btn-primary'
-					disabled={loading}
+					disabled={loading || isValidating || !isValid}
 				>
 					{loading
 						? 'Saving...'

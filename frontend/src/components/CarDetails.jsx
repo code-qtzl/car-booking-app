@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient, formatErrorMessage } from '../utils/networkUtils';
 import '../styles/CarDetails.css';
 
 const CarDetails = () => {
@@ -22,7 +22,7 @@ const CarDetails = () => {
 			setLoading(true);
 			setError(null);
 
-			const response = await axios.get(`/api/cars/${carId}`);
+			const response = await apiClient.get(`/api/cars/${carId}`);
 
 			if (response.data.success) {
 				setCar(response.data.data);
@@ -34,11 +34,8 @@ const CarDetails = () => {
 			}
 		} catch (err) {
 			console.error('Error fetching car details:', err);
-			setError(
-				err.response?.data?.message ||
-					err.message ||
-					'Failed to load car details',
-			);
+			const errorMessage = formatErrorMessage(err);
+			setError(errorMessage);
 		} finally {
 			setLoading(false);
 		}

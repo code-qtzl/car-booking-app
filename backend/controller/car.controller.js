@@ -1,5 +1,10 @@
 const carService = require('../service/car.service');
 const imageService = require('../service/image.service');
+const {
+	validateBody,
+	validateQuery,
+	carValidationSchemas,
+} = require('../middleware/validation.middleware');
 const path = require('path');
 
 /**

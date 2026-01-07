@@ -6,6 +6,11 @@ const {
 	authenticateUser,
 } = require('../middleware/auth.middleware');
 const {
+	validateBody,
+	validateQuery,
+	carValidationSchemas,
+} = require('../middleware/validation.middleware');
+const {
 	uploadMultiple,
 	handleUploadError,
 } = require('../middleware/upload.middleware');
@@ -15,9 +20,19 @@ const {
 	cacheStatsMiddleware,
 } = require('../middleware/cache.middleware');
 
-// Public routes (no authentication required) - with enhanced caching
-router.get('/', cacheMiddleware(600000), carController.getAllCars); // 10 minutes cache
-router.get('/search', cacheMiddleware(300000), carController.searchCars); // 5 minutes cache for search
+// Public routes (no authentication required) - with enhanced caching and validation
+router.get(
+	'/',
+	validateQuery(carValidationSchemas.query),
+	cacheMiddleware(600000),
+	carController.getAllCars,
+); // 10 minutes cache
+router.get(
+	'/search',
+	validateQuery(carValidationSchemas.query),
+	cacheMiddleware(300000),
+	carController.searchCars,
+); // 5 minutes cache for search
 router.get(
 	'/images/:filename',
 	cacheMiddleware(86400000), // 24 hours cache for images
@@ -33,16 +48,18 @@ router.get(
 // Cache statistics endpoint (for monitoring)
 router.get('/admin/cache/stats', authenticateAdmin, cacheStatsMiddleware);
 
-// Admin-only routes (authentication and admin role required) - with enhanced cache clearing
+// Admin-only routes (authentication and admin role required) - with enhanced cache clearing and validation
 router.post(
 	'/',
 	authenticateAdmin,
+	validateBody(carValidationSchemas.create),
 	clearCacheMiddleware(['/api/cars'], false), // Clear only car-related cache
 	carController.createCar,
 );
 router.put(
 	'/:id',
 	authenticateAdmin,
+	validateBody(carValidationSchemas.update),
 	clearCacheMiddleware(['/api/cars'], false), // Clear only car-related cache
 	carController.updateCar,
 );
