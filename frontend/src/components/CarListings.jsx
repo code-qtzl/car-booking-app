@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CarCard from './CarCard';
 import axios from 'axios';
 
 const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
+	const navigate = useNavigate();
 	const [cars, setCars] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -74,8 +76,8 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 	};
 
 	const handleCarClick = (carId) => {
-		// Navigate to car details - will be implemented when routing is added
-		console.log('Navigate to car details:', carId);
+		// Navigate to car details
+		navigate(`/cars/${carId}`);
 	};
 
 	const handleFilterChange = (newFilters) => {
