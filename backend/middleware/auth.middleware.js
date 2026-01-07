@@ -2,15 +2,14 @@ const User = require('../model/user.model');
 
 /**
  * Middleware to authenticate users and extract user information
- * This is a simplified version - in production, you'd use JWT tokens
+ * Enhanced version with better session management and user lookup
  */
 const authenticateUser = async (req, res, next) => {
 	try {
-		// For now, we'll use a simple approach where the user ID is passed in headers
-		// In production, this would validate JWT tokens
-		const userId = req.headers['x-user-id'];
+		// Get user identifier from headers (email in this case)
+		const userEmail = req.headers['x-user-id'];
 
-		if (!userId) {
+		if (!userEmail) {
 			return res.status(401).json({
 				success: false,
 				error: {
@@ -20,8 +19,8 @@ const authenticateUser = async (req, res, next) => {
 			});
 		}
 
-		// Find the user in the database
-		const user = await User.findById(userId);
+		// Find the user by email (since we're using email as the identifier)
+		const user = await User.findOne({ emailId: userEmail });
 
 		if (!user) {
 			return res.status(401).json({
@@ -36,7 +35,6 @@ const authenticateUser = async (req, res, next) => {
 		// Attach user to request object with proper role mapping
 		req.user = {
 			id: user._id,
-			name: user.name,
 			emailId: user.emailId,
 			role: user.typeOfUser === 'ADMIN' ? 'admin' : 'customer',
 			typeOfUser: user.typeOfUser,
@@ -44,6 +42,7 @@ const authenticateUser = async (req, res, next) => {
 
 		next();
 	} catch (error) {
+		console.error('Authentication error:', error);
 		res.status(500).json({
 			success: false,
 			error: {
@@ -175,9 +174,50 @@ const errorHandler = (err, req, res, next) => {
 	});
 };
 
+/**
+ * Middleware for optional authentication
+ * Allows both authenticated and unauthenticated access
+ * If user is authenticated, adds user info to request
+ */
+const optionalAuthentication = async (req, res, next) => {
+	try {
+		const userEmail = req.headers['x-user-id'];
+
+		if (!userEmail) {
+			// No authentication provided, continue without user info
+			req.user = null;
+			return next();
+		}
+
+		// Try to authenticate the user
+		const user = await User.findOne({ emailId: userEmail });
+
+		if (user) {
+			// User found, attach to request
+			req.user = {
+				id: user._id,
+				emailId: user.emailId,
+				role: user.typeOfUser === 'ADMIN' ? 'admin' : 'customer',
+				typeOfUser: user.typeOfUser,
+			};
+		} else {
+			// Invalid user, but don't fail the request
+			req.user = null;
+		}
+
+		next();
+	} catch (error) {
+		console.error('Optional authentication error:', error);
+		// Don't fail the request for optional auth errors
+		req.user = null;
+		next();
+	}
+};
+
 module.exports = {
 	authenticateUser,
 	authenticateAdmin,
+	optionalAuthentication,
 	validateRequest,
 	errorHandler,
 };

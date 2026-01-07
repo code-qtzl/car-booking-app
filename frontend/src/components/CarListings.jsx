@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CarCard from './CarCard';
 import { apiClient, formatErrorMessage } from '../utils/networkUtils';
+import { useAuthContext } from '../contexts/AuthContext';
 
 const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 	const navigate = useNavigate();
+	const { getAuthHeaders, refreshSession, isAuthenticated } =
+		useAuthContext();
 	const [cars, setCars] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -181,13 +184,17 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				}
 			}
 
+			// Prepare headers - include auth headers if user is authenticated
+			const headers = {
+				Accept: 'application/json',
+				'Cache-Control': 'max-age=300', // Request 5 minute cache
+				...(isAuthenticated ? getAuthHeaders() : {}),
+			};
+
 			const response = await apiClient.get(`/api/cars?${queryString}`, {
 				// Enhanced request configuration for better performance
 				timeout: 10000, // 10 second timeout
-				headers: {
-					Accept: 'application/json',
-					'Cache-Control': 'max-age=300', // Request 5 minute cache
-				},
+				headers,
 			});
 
 			if (response.data.success) {
@@ -208,6 +215,11 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				// Enhanced cache management with performance optimization
 				cacheRef.current = manageCacheSize(cacheRef.current);
 				cacheRef.current.set(cacheKey, responseData);
+
+				// Refresh session if authenticated
+				if (isAuthenticated) {
+					refreshSession();
+				}
 			} else {
 				throw new Error(
 					response.data.message || 'Failed to fetch cars',
@@ -309,12 +321,16 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				}
 			}
 
+			// Prepare headers - include auth headers if user is authenticated
+			const headers = {
+				Accept: 'application/json',
+				'Cache-Control': 'max-age=300',
+				...(isAuthenticated ? getAuthHeaders() : {}),
+			};
+
 			const response = await apiClient.get(`/api/cars?${queryString}`, {
 				timeout: 10000,
-				headers: {
-					Accept: 'application/json',
-					'Cache-Control': 'max-age=300',
-				},
+				headers,
 			});
 
 			if (response.data.success) {
@@ -331,6 +347,11 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				// Cache the response with enhanced management
 				cacheRef.current = manageCacheSize(cacheRef.current);
 				cacheRef.current.set(cacheKey, responseData);
+
+				// Refresh session if authenticated
+				if (isAuthenticated) {
+					refreshSession();
+				}
 			}
 		} catch (err) {
 			console.error('Error loading more cars:', err);

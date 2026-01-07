@@ -1,59 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuthContext } from '../contexts/AuthContext';
 
 const AdminRoute = ({ children }) => {
-	const [isAdmin, setIsAdmin] = useState(null);
-	const [loading, setLoading] = useState(true);
+	const { isAuthenticated, isAdmin, loading, checkAdminAccess } =
+		useAuthContext();
+	const [hasAdminAccess, setHasAdminAccess] = useState(null);
+	const [checking, setChecking] = useState(true);
 
 	useEffect(() => {
-		const checkAdminAccess = async () => {
+		const verifyAdminAccess = async () => {
 			try {
-				const userId = localStorage.getItem('userId');
-				const userRole = localStorage.getItem('userRole');
-
-				if (!userId) {
-					setIsAdmin(false);
-					setLoading(false);
+				if (!isAuthenticated || !isAdmin) {
+					setHasAdminAccess(false);
+					setChecking(false);
 					return;
 				}
 
-				// Verify admin access with the backend
-				try {
-					const response = await fetch('/api/cars/admin/cache/stats', {
-						method: 'GET',
-						headers: {
-							'x-user-id': userId,
-							'Content-Type': 'application/json',
-						},
-					});
-
-					if (response.ok) {
-						// If the admin endpoint is accessible, user is admin
-						setIsAdmin(true);
-					} else if (response.status === 403) {
-						// Forbidden - not an admin
-						setIsAdmin(false);
-					} else {
-						// Other errors - fall back to stored role
-						setIsAdmin(userRole === 'admin');
-					}
-				} catch (error) {
-					// Network error - fall back to stored role
-					console.warn('Could not verify admin access with server, using stored role');
-					setIsAdmin(userRole === 'admin');
-				}
+				// Verify admin access with backend
+				const hasAccess = await checkAdminAccess();
+				setHasAdminAccess(hasAccess);
 			} catch (error) {
-				console.error('Error checking admin access:', error);
-				setIsAdmin(false);
+				console.error('Error verifying admin access:', error);
+				setHasAdminAccess(false);
 			} finally {
-				setLoading(false);
+				setChecking(false);
 			}
 		};
 
-		checkAdminAccess();
-	}, []);
+		if (!loading) {
+			verifyAdminAccess();
+		}
+	}, [isAuthenticated, isAdmin, loading, checkAdminAccess]);
 
-	if (loading) {
+	if (loading || checking) {
 		return (
 			<div
 				style={{
@@ -68,13 +48,11 @@ const AdminRoute = ({ children }) => {
 		);
 	}
 
-	if (!isAdmin) {
+	if (!hasAdminAccess) {
 		return <Navigate to='/' replace />;
 	}
 
 	return children;
 };
-
-export default AdminRoute;
 
 export default AdminRoute;

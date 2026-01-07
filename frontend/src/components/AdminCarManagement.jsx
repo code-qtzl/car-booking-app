@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import CarForm from './CarForm';
 import CarList from './CarList';
+import { useAuthContext } from '../contexts/AuthContext';
 import '../styles/AdminCarManagement.css';
 
 const AdminCarManagement = () => {
+	const { getAuthHeaders, refreshSession } = useAuthContext();
 	const [cars, setCars] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -21,16 +23,8 @@ const AdminCarManagement = () => {
 			setLoading(true);
 			setError(null);
 
-			const userId = localStorage.getItem('userId');
-			if (!userId) {
-				throw new Error('Authentication required');
-			}
-
 			const response = await fetch('/api/cars', {
-				headers: {
-					'x-user-id': userId,
-					'Content-Type': 'application/json',
-				},
+				headers: getAuthHeaders(),
 			});
 
 			if (!response.ok) {
@@ -38,14 +32,31 @@ const AdminCarManagement = () => {
 					throw new Error(
 						'Authentication failed. Please log in again.',
 					);
+				} else if (response.status === 403) {
+					throw new Error(
+						'Admin access required for this operation.',
+					);
 				}
 				throw new Error('Failed to fetch cars');
 			}
 
 			const data = await response.json();
 			setCars(data.data || []);
+
+			// Refresh session on successful request
+			refreshSession();
 		} catch (err) {
 			setError(err.message);
+
+			// Redirect to login if authentication failed
+			if (
+				err.message.includes('Authentication failed') ||
+				err.message.includes('Session expired')
+			) {
+				setTimeout(() => {
+					window.location.href = '/';
+				}, 2000);
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -69,17 +80,9 @@ const AdminCarManagement = () => {
 		}
 
 		try {
-			const userId = localStorage.getItem('userId');
-			if (!userId) {
-				throw new Error('Authentication required');
-			}
-
 			const response = await fetch(`/api/cars/${carId}`, {
 				method: 'DELETE',
-				headers: {
-					'x-user-id': userId,
-					'Content-Type': 'application/json',
-				},
+				headers: getAuthHeaders(),
 			});
 
 			if (!response.ok) {
@@ -97,18 +100,26 @@ const AdminCarManagement = () => {
 
 			// Remove car from local state
 			setCars(cars.filter((car) => car._id !== carId));
+
+			// Refresh session on successful request
+			refreshSession();
 		} catch (err) {
 			setError(err.message);
+
+			// Redirect to login if authentication failed
+			if (
+				err.message.includes('Authentication failed') ||
+				err.message.includes('Session expired')
+			) {
+				setTimeout(() => {
+					window.location.href = '/';
+				}, 2000);
+			}
 		}
 	};
 
 	const handleFormSubmit = async (carData) => {
 		try {
-			const userId = localStorage.getItem('userId');
-			if (!userId) {
-				throw new Error('Authentication required');
-			}
-
 			const url =
 				formMode === 'add'
 					? '/api/cars'
@@ -117,10 +128,7 @@ const AdminCarManagement = () => {
 
 			const response = await fetch(url, {
 				method,
-				headers: {
-					'Content-Type': 'application/json',
-					'x-user-id': userId,
-				},
+				headers: getAuthHeaders(),
 				body: JSON.stringify(carData),
 			});
 
@@ -154,7 +162,20 @@ const AdminCarManagement = () => {
 
 			setShowForm(false);
 			setSelectedCar(null);
+
+			// Refresh session on successful request
+			refreshSession();
 		} catch (err) {
+			// Check if it's an authentication error
+			if (
+				err.message.includes('Authentication failed') ||
+				err.message.includes('Session expired')
+			) {
+				setError(err.message);
+				setTimeout(() => {
+					window.location.href = '/';
+				}, 2000);
+			}
 			throw err; // Let the form handle the error display
 		}
 	};

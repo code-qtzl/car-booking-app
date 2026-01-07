@@ -50,6 +50,7 @@ export const authService = {
 			user.typeOfUser === 'ADMIN' ? 'admin' : 'customer',
 		);
 		localStorage.setItem('userType', user.typeOfUser);
+		localStorage.setItem('sessionTimestamp', Date.now().toString());
 	},
 
 	/**
@@ -60,6 +61,7 @@ export const authService = {
 		localStorage.removeItem('userEmail');
 		localStorage.removeItem('userRole');
 		localStorage.removeItem('userType');
+		localStorage.removeItem('sessionTimestamp');
 	},
 
 	/**
@@ -86,30 +88,137 @@ export const authService = {
 	},
 
 	/**
-	 * Check if user session is valid by making a test API call
+	 * Check if user session is valid by validating with backend
 	 */
 	async validateSession() {
 		if (!this.isAuthenticated()) {
 			return false;
 		}
 
-		try {
-			// Make a simple API call to validate the session
-			const response = await fetch('/api/cars?limit=1', {
-				headers: this.getAuthHeaders(),
-			});
+		// Check session age (expire after 24 hours)
+		const sessionTimestamp = localStorage.getItem('sessionTimestamp');
+		if (sessionTimestamp) {
+			const sessionAge = Date.now() - parseInt(sessionTimestamp);
+			const maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
-			if (response.status === 401) {
-				// Session is invalid, clear it
+			if (sessionAge > maxAge) {
 				this.clearUserSession();
 				return false;
 			}
+		}
+
+		try {
+			// Use the new validation endpoint
+			const response = await fetch('/api/login/validate-session', {
+				method: 'GET',
+				headers: this.getAuthHeaders(),
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.success && data.user) {
+					// Update session with fresh user data
+					this.setUserSession(data.user);
+					return true;
+				}
+			}
+
+			// Session is invalid, clear it
+			this.clearUserSession();
+			return false;
+		} catch (error) {
+			console.warn('Session validation failed:', error);
+			// On network error, assume session is still valid but don't refresh
+			return true;
+		}
+	},
+
+	/**
+	 * Get user profile from backend
+	 */
+	async getUserProfile() {
+		if (!this.isAuthenticated()) {
+			throw new Error('User not authenticated');
+		}
+
+		try {
+			const response = await fetch('/api/login/profile', {
+				method: 'GET',
+				headers: this.getAuthHeaders(),
+			});
+
+			if (!response.ok) {
+				if (response.status === 401) {
+					this.clearUserSession();
+					throw new Error('Session expired');
+				}
+				throw new Error('Failed to fetch user profile');
+			}
+
+			const data = await response.json();
+			if (data.success) {
+				return data.data;
+			}
+
+			throw new Error(data.error?.message || 'Failed to fetch profile');
+		} catch (error) {
+			console.error('Error fetching user profile:', error);
+			throw error;
+		}
+	},
+
+	/**
+	 * Refresh session timestamp to extend session
+	 */
+	refreshSession() {
+		if (this.isAuthenticated()) {
+			localStorage.setItem('sessionTimestamp', Date.now().toString());
+		}
+	},
+
+	/**
+	 * Check if user has permission for admin operations
+	 */
+	async hasAdminAccess() {
+		if (!this.isAdmin()) {
+			return false;
+		}
+
+		// Validate session first
+		const isValid = await this.validateSession();
+		if (!isValid) {
+			return false;
+		}
+
+		try {
+			// Test admin access with a simple admin endpoint
+			const response = await fetch('/api/cars/admin/cache/stats', {
+				method: 'GET',
+				headers: this.getAuthHeaders(),
+			});
 
 			return response.ok;
 		} catch (error) {
-			console.warn('Session validation failed:', error);
-			return true; // Assume valid if network error
+			console.warn('Admin access check failed:', error);
+			// Fall back to stored role on network error
+			return this.isAdmin();
 		}
+	},
+
+	/**
+	 * Enhanced session management for car browsing
+	 * Allows both authenticated and unauthenticated access
+	 */
+	async initializeSession() {
+		if (this.isAuthenticated()) {
+			// Validate existing session
+			const isValid = await this.validateSession();
+			if (!isValid) {
+				console.log('Session expired, cleared local storage');
+			}
+			return isValid;
+		}
+		return false; // No session to initialize
 	},
 };
 

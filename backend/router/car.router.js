@@ -4,6 +4,7 @@ const carController = require('../controller/car.controller');
 const {
 	authenticateAdmin,
 	authenticateUser,
+	optionalAuthentication,
 } = require('../middleware/auth.middleware');
 const {
 	validateBody,
@@ -20,16 +21,18 @@ const {
 	cacheStatsMiddleware,
 } = require('../middleware/cache.middleware');
 
-// Public routes (no authentication required) - with enhanced caching and validation
+// Public routes (optional authentication) - with enhanced caching and validation
 router.get(
 	'/',
 	validateQuery(carValidationSchemas.query),
+	optionalAuthentication,
 	cacheMiddleware(600000),
 	carController.getAllCars,
 ); // 10 minutes cache
 router.get(
 	'/search',
 	validateQuery(carValidationSchemas.query),
+	optionalAuthentication,
 	cacheMiddleware(300000),
 	carController.searchCars,
 ); // 5 minutes cache for search
@@ -38,9 +41,15 @@ router.get(
 	cacheMiddleware(86400000), // 24 hours cache for images
 	carController.serveCarImage,
 );
-router.get('/:id', cacheMiddleware(600000), carController.getCarById); // 10 minutes cache
+router.get(
+	'/:id',
+	optionalAuthentication,
+	cacheMiddleware(600000),
+	carController.getCarById,
+); // 10 minutes cache
 router.get(
 	'/availability/:status',
+	optionalAuthentication,
 	cacheMiddleware(300000), // 5 minutes cache for availability
 	carController.getCarsByAvailability,
 );

@@ -122,7 +122,17 @@ const getCarById = async (req, res) => {
 const createCar = async (req, res) => {
 	try {
 		const carData = req.body;
-		const adminUserId = req.user.id; // Set by authentication middleware
+		const adminUserId = req.user?.id; // Set by authentication middleware
+
+		if (!adminUserId) {
+			return res.status(401).json({
+				success: false,
+				error: {
+					code: 'AUTHENTICATION_REQUIRED',
+					message: 'Admin authentication is required',
+				},
+			});
+		}
 
 		if (!carData || Object.keys(carData).length === 0) {
 			return res.status(400).json({
@@ -180,7 +190,17 @@ const updateCar = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const updateData = req.body;
-		const adminUserId = req.user.id; // Set by authentication middleware
+		const adminUserId = req.user?.id; // Set by authentication middleware
+
+		if (!adminUserId) {
+			return res.status(401).json({
+				success: false,
+				error: {
+					code: 'AUTHENTICATION_REQUIRED',
+					message: 'Admin authentication is required',
+				},
+			});
+		}
 
 		if (!id) {
 			return res.status(400).json({
@@ -246,7 +266,17 @@ const updateCar = async (req, res) => {
 const deleteCar = async (req, res) => {
 	try {
 		const { id } = req.params;
-		const adminUserId = req.user.id; // Set by authentication middleware
+		const adminUserId = req.user?.id; // Set by authentication middleware
+
+		if (!adminUserId) {
+			return res.status(401).json({
+				success: false,
+				error: {
+					code: 'AUTHENTICATION_REQUIRED',
+					message: 'Admin authentication is required',
+				},
+			});
+		}
 
 		if (!id) {
 			return res.status(400).json({

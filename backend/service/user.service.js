@@ -1,35 +1,45 @@
-
-const userRepo = require("../repository/user.repository");
-const passwordHash = require("../config/passwordHashing");
+const userRepo = require('../repository/user.repository');
+const passwordHash = require('../config/passwordHashing');
 
 const signup = async (userData) => {
-const existingUser = await userRepo.findUserByEmail(userData.emailId);
-if (existingUser) {
-    throw new Error("User already exists");
-}
+	const existingUser = await userRepo.findUserByEmail(userData.emailId);
+	if (existingUser) {
+		throw new Error('User already exists');
+	}
 
-userData.password = await passwordHash.hashPassword(userData.password);
-return userRepo.createUser(userData);
+	userData.password = await passwordHash.hashPassword(userData.password);
+	return userRepo.createUser(userData);
 };
 
 const signin = async (emailId, password) => {
-const user = await userRepo.findUserByEmail(emailId);
-if (!user) {
-    throw new Error("Invalid email");
-}
+	const user = await userRepo.findUserByEmail(emailId);
+	if (!user) {
+		throw new Error('Invalid email');
+	}
 
-const isMatch = await passwordHash.matchPassword(password,user.password);
-if (!isMatch) {
-    throw new Error("Invalid password");
-}
-return {
-    emailId: user.emailId,
-    typeOfUser: user.typeOfUser
+	const isMatch = await passwordHash.matchPassword(password, user.password);
+	if (!isMatch) {
+		throw new Error('Invalid password');
+	}
+	return {
+		emailId: user.emailId,
+		typeOfUser: user.typeOfUser,
+	};
 };
+
+/**
+ * Get user by ID for profile information
+ */
+const getUserById = async (userId) => {
+	const user = await userRepo.findUserById(userId);
+	if (!user) {
+		throw new Error('User not found');
+	}
+	return user;
 };
 
 module.exports = {
-signup,
-signin
+	signup,
+	signin,
+	getUserById,
 };
-

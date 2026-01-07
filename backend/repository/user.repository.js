@@ -1,14 +1,19 @@
-const User = require("../model/user.model");
+const User = require('../model/user.model');
 
 const findUserByEmail = (emailId) => {
-  return User.findOne({ emailId });
+	return User.findOne({ emailId });
+};
+
+const findUserById = (userId) => {
+	return User.findById(userId);
 };
 
 const createUser = (userData) => {
-  return User.create(userData);
+	return User.create(userData);
 };
 
 module.exports = {
-  findUserByEmail,
-  createUser
+	findUserByEmail,
+	findUserById,
+	createUser,
 };

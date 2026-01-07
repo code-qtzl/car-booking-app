@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn } from '../service/login.service';
-import authService from '../service/auth.service';
+import { useAuthContext } from '../contexts/AuthContext';
 // import './Login.css';
 
 function Login() {
 	const navigate = useNavigate();
+	const { login } = useAuthContext();
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
@@ -35,13 +36,13 @@ function Login() {
 			};
 
 			const response = await signIn(loginData);
-			
+
 			if (response.data && response.data.user) {
 				const user = response.data.user;
-				
-				// Store user session using auth service
-				authService.setUserSession(user);
-				
+
+				// Use auth context to manage session
+				login(user);
+
 				// Navigate based on user role
 				if (user.typeOfUser === 'ADMIN') {
 					navigate('/admin');
@@ -52,7 +53,9 @@ function Login() {
 				throw new Error('Invalid response from server');
 			}
 		} catch (err) {
-			setError(err.message || 'Login failed. Please check your credentials.');
+			setError(
+				err.message || 'Login failed. Please check your credentials.',
+			);
 			console.error('Login error:', err);
 		} finally {
 			setIsLoading(false);
@@ -114,7 +117,11 @@ function Login() {
 				</div>
 
 				<div className='button-group'>
-					<button type='submit' className='btn btn-signin' disabled={isLoading}>
+					<button
+						type='submit'
+						className='btn btn-signin'
+						disabled={isLoading}
+					>
 						{isLoading ? 'Signing In...' : 'Sign In'}
 					</button>
 				</div>
@@ -133,5 +140,5 @@ function Login() {
 		</div>
 	);
 }
-export default Login;
+
 export default Login;
