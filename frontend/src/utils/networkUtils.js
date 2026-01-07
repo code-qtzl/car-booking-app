@@ -272,8 +272,13 @@ const isValidationError = (error) => {
 	);
 };
 
-// Create default axios instance with retry
-const apiClient = createAxiosWithRetry();
+// Create default axios instance with retry and base URL
+const apiClient = createAxiosWithRetry({
+	baseURL: 'http://localhost:5000', // Backend server URL
+	headers: {
+		'Content-Type': 'application/json',
+	},
+});
 
 export {
 	retryWithBackoff,

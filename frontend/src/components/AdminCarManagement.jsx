@@ -23,7 +23,7 @@ const AdminCarManagement = () => {
 			setLoading(true);
 			setError(null);
 
-			const response = await fetch('/api/cars', {
+			const response = await fetch('http://localhost:5000/api/cars', {
 				headers: getAuthHeaders(),
 			});
 
@@ -80,10 +80,13 @@ const AdminCarManagement = () => {
 		}
 
 		try {
-			const response = await fetch(`/api/cars/${carId}`, {
-				method: 'DELETE',
-				headers: getAuthHeaders(),
-			});
+			const response = await fetch(
+				`http://localhost:5000/api/cars/${carId}`,
+				{
+					method: 'DELETE',
+					headers: getAuthHeaders(),
+				},
+			);
 
 			if (!response.ok) {
 				if (response.status === 401) {
@@ -122,8 +125,8 @@ const AdminCarManagement = () => {
 		try {
 			const url =
 				formMode === 'add'
-					? '/api/cars'
-					: `/api/cars/${selectedCar._id}`;
+					? 'http://localhost:5000/api/cars'
+					: `http://localhost:5000/api/cars/${selectedCar._id}`;
 			const method = formMode === 'add' ? 'POST' : 'PUT';
 
 			const response = await fetch(url, {

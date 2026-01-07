@@ -109,10 +109,13 @@ export const authService = {
 
 		try {
 			// Use the new validation endpoint
-			const response = await fetch('/api/login/validate-session', {
-				method: 'GET',
-				headers: this.getAuthHeaders(),
-			});
+			const response = await fetch(
+				'http://localhost:5000/api/login/validate-session',
+				{
+					method: 'GET',
+					headers: this.getAuthHeaders(),
+				},
+			);
 
 			if (response.ok) {
 				const data = await response.json();
@@ -142,10 +145,13 @@ export const authService = {
 		}
 
 		try {
-			const response = await fetch('/api/login/profile', {
-				method: 'GET',
-				headers: this.getAuthHeaders(),
-			});
+			const response = await fetch(
+				'http://localhost:5000/api/login/profile',
+				{
+					method: 'GET',
+					headers: this.getAuthHeaders(),
+				},
+			);
 
 			if (!response.ok) {
 				if (response.status === 401) {
@@ -192,10 +198,13 @@ export const authService = {
 
 		try {
 			// Test admin access with a simple admin endpoint
-			const response = await fetch('/api/cars/admin/cache/stats', {
-				method: 'GET',
-				headers: this.getAuthHeaders(),
-			});
+			const response = await fetch(
+				'http://localhost:5000/api/cars/admin/cache/stats',
+				{
+					method: 'GET',
+					headers: this.getAuthHeaders(),
+				},
+			);
 
 			return response.ok;
 		} catch (error) {
