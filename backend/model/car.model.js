@@ -150,7 +150,9 @@ carSchema.pre('validate', function (next) {
 			'Year cannot be more than one year in the future',
 		);
 	}
-	next();
+	if (typeof next === 'function') {
+		next();
+	}
 });
 
 // Ensure license plate is unique and properly formatted
@@ -158,7 +160,9 @@ carSchema.pre('save', function (next) {
 	if (this.licensePlate) {
 		this.licensePlate = this.licensePlate.toUpperCase().trim();
 	}
-	next();
+	if (typeof next === 'function') {
+		next();
+	}
 });
 
 module.exports = mongoose.model('Car', carSchema);
