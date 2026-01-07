@@ -1,4 +1,5 @@
 const carRepo = require('../repository/car.repository');
+const imageService = require('./image.service');
 
 /**
  * Car Service Layer
@@ -529,6 +530,90 @@ const getChanges = (oldCar, newCar) => {
 	return changes;
 };
 
+/**
+ * Add images to a car
+ * @param {string} carId - Car ID
+ * @param {string[]} imageUrls - Array of image URLs to add
+ * @returns {Promise<Object>} Updated car document
+ */
+const addCarImages = async (carId, imageUrls) => {
+	try {
+		if (!carId) {
+			throw new Error('Car ID is required');
+		}
+
+		if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+			throw new Error('Image URLs array is required');
+		}
+
+		// Get existing car
+		const existingCar = await carRepo.findCarById(carId);
+		if (!existingCar) {
+			throw new Error('Car not found');
+		}
+
+		// Merge with existing images
+		const currentImages = existingCar.images || [];
+		const updatedImages = [...currentImages, ...imageUrls];
+
+		// Update car with new images
+		const updatedCar = await carRepo.updateCar(carId, {
+			images: updatedImages,
+		});
+
+		if (!updatedCar) {
+			throw new Error('Failed to update car with images');
+		}
+
+		return updatedCar;
+	} catch (error) {
+		throw new Error(`Failed to add car images: ${error.message}`);
+	}
+};
+
+/**
+ * Remove images from a car
+ * @param {string} carId - Car ID
+ * @param {string[]} imageUrls - Array of image URLs to remove
+ * @returns {Promise<Object>} Updated car document
+ */
+const removeCarImages = async (carId, imageUrls) => {
+	try {
+		if (!carId) {
+			throw new Error('Car ID is required');
+		}
+
+		if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+			throw new Error('Image URLs array is required');
+		}
+
+		// Get existing car
+		const existingCar = await carRepo.findCarById(carId);
+		if (!existingCar) {
+			throw new Error('Car not found');
+		}
+
+		// Filter out the images to be removed
+		const currentImages = existingCar.images || [];
+		const updatedImages = currentImages.filter(
+			(url) => !imageUrls.includes(url),
+		);
+
+		// Update car with filtered images
+		const updatedCar = await carRepo.updateCar(carId, {
+			images: updatedImages,
+		});
+
+		if (!updatedCar) {
+			throw new Error('Failed to update car images');
+		}
+
+		return updatedCar;
+	} catch (error) {
+		throw new Error(`Failed to remove car images: ${error.message}`);
+	}
+};
+
 module.exports = {
 	findCars,
 	findCarById,
@@ -537,6 +622,8 @@ module.exports = {
 	removeCar,
 	searchCars,
 	getCarsByAvailability,
+	addCarImages,
+	removeCarImages,
 	auditLogger,
 	// Export helper functions for testing
 	processFilters,

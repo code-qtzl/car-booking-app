@@ -15,7 +15,10 @@
 		"bcrypt": "^6.0.0",
 		"dotenv": "^17.2.3",
 		"express": "^5.2.1",
-		"mongoose": "^9.0.2"
+		"fs-extra": "^11.3.3",
+		"mongoose": "^9.0.2",
+		"multer": "^2.0.2",
+		"path": "^0.12.7"
 	},
 	"devDependencies": {
 		"fast-check": "^4.5.3",

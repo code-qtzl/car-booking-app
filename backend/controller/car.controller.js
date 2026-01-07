@@ -1,4 +1,6 @@
 const carService = require('../service/car.service');
+const imageService = require('../service/image.service');
+const path = require('path');
 
 /**
  * Get all cars with optional filtering and pagination
@@ -377,6 +379,201 @@ const getCarsByAvailability = async (req, res) => {
 	}
 };
 
+/**
+ * Upload images for a car
+ */
+const uploadCarImages = async (req, res) => {
+	try {
+		const { carId } = req.params;
+		const files = req.files;
+
+		if (!carId) {
+			return res.status(400).json({
+				success: false,
+				error: {
+					code: 'MISSING_CAR_ID',
+					message: 'Car ID is required',
+				},
+			});
+		}
+
+		if (!files || files.length === 0) {
+			return res.status(400).json({
+				success: false,
+				error: {
+					code: 'NO_FILES_UPLOADED',
+					message: 'No image files were uploaded',
+				},
+			});
+		}
+
+		// Process uploaded files
+		const imageData = imageService.processUploadedFiles(files);
+
+		// Update car with new image URLs
+		const car = await carService.addCarImages(carId, imageData.urls);
+
+		res.json({
+			success: true,
+			message: 'Images uploaded successfully',
+			data: {
+				car: car,
+				uploadedImages: {
+					count: imageData.count,
+					urls: imageData.urls,
+				},
+			},
+		});
+	} catch (error) {
+		// Clean up uploaded files if car update fails
+		if (req.files) {
+			const filenames = req.files.map((file) => file.filename);
+			imageService.deleteImages(filenames);
+		}
+
+		let statusCode = 400;
+		let errorCode = 'UPLOAD_ERROR';
+
+		if (error.message.includes('not found')) {
+			statusCode = 404;
+			errorCode = 'CAR_NOT_FOUND';
+		}
+
+		res.status(statusCode).json({
+			success: false,
+			error: {
+				code: errorCode,
+				message: error.message,
+			},
+		});
+	}
+};
+
+/**
+ * Serve car images
+ */
+const serveCarImage = async (req, res) => {
+	try {
+		const { filename } = req.params;
+
+		if (!filename) {
+			return res.status(400).json({
+				success: false,
+				error: {
+					code: 'MISSING_FILENAME',
+					message: 'Image filename is required',
+				},
+			});
+		}
+
+		// Validate image exists
+		const validation = await imageService.validateImage(filename);
+
+		if (!validation.valid) {
+			return res.status(404).json({
+				success: false,
+				error: {
+					code: 'IMAGE_NOT_FOUND',
+					message: validation.error,
+				},
+			});
+		}
+
+		// Serve the image file
+		const imagePath = imageService.getImagePath(filename);
+
+		// Set appropriate content type based on file extension
+		const ext = path.extname(filename).toLowerCase();
+		const contentTypes = {
+			'.jpg': 'image/jpeg',
+			'.jpeg': 'image/jpeg',
+			'.png': 'image/png',
+			'.webp': 'image/webp',
+		};
+
+		const contentType = contentTypes[ext] || 'image/jpeg';
+		res.setHeader('Content-Type', contentType);
+		res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+
+		res.sendFile(imagePath);
+	} catch (error) {
+		res.status(500).json({
+			success: false,
+			error: {
+				code: 'SERVE_IMAGE_ERROR',
+				message: 'Failed to serve image',
+			},
+		});
+	}
+};
+
+/**
+ * Delete car images
+ */
+const deleteCarImages = async (req, res) => {
+	try {
+		const { carId } = req.params;
+		const { imageUrls } = req.body;
+
+		if (!carId) {
+			return res.status(400).json({
+				success: false,
+				error: {
+					code: 'MISSING_CAR_ID',
+					message: 'Car ID is required',
+				},
+			});
+		}
+
+		if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+			return res.status(400).json({
+				success: false,
+				error: {
+					code: 'MISSING_IMAGE_URLS',
+					message: 'Image URLs array is required',
+				},
+			});
+		}
+
+		// Extract filenames from URLs
+		const filenames = imageService.extractFilenamesFromUrls(imageUrls);
+
+		// Remove images from car record
+		const car = await carService.removeCarImages(carId, imageUrls);
+
+		// Delete physical files
+		const deleteResults = await imageService.deleteImages(filenames);
+
+		res.json({
+			success: true,
+			message: 'Images deleted successfully',
+			data: {
+				car: car,
+				deletedImages: {
+					count: deleteResults.deleted,
+					failed: deleteResults.failed,
+				},
+			},
+		});
+	} catch (error) {
+		let statusCode = 400;
+		let errorCode = 'DELETE_IMAGES_ERROR';
+
+		if (error.message.includes('not found')) {
+			statusCode = 404;
+			errorCode = 'CAR_NOT_FOUND';
+		}
+
+		res.status(statusCode).json({
+			success: false,
+			error: {
+				code: errorCode,
+				message: error.message,
+			},
+		});
+	}
+};
+
 module.exports = {
 	getAllCars,
 	getCarById,
@@ -385,4 +582,7 @@ module.exports = {
 	deleteCar,
 	searchCars,
 	getCarsByAvailability,
+	uploadCarImages,
+	serveCarImage,
+	deleteCarImages,
 };
