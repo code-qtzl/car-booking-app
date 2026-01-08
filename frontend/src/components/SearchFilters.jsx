@@ -231,9 +231,9 @@ const SearchFilters = ({
 	};
 
 	return (
-		<div className='search-filters'>
+		<div className='search-filters' data-testid='search-filters'>
 			{/* Main Search Bar */}
-			<div className='search-bar'>
+			<div className='search-bar filters-container'>
 				<div className='search-input-container'>
 					<input
 						type='text'

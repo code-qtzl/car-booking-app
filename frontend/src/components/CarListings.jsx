@@ -530,7 +530,11 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 	if (loading && cars.length === 0) {
 		return (
 			<div className='loading-container'>
-				<div className='loading-spinner' aria-label='Loading cars'>
+				<div
+					className='loading-spinner'
+					data-testid='loading-indicator'
+					aria-label='Loading cars'
+				>
 					<div className='spinner'></div>
 					<p>Loading available cars...</p>
 				</div>
@@ -571,7 +575,7 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 	}
 
 	return (
-		<div className='car-listings'>
+		<div className='car-listings' data-testid='car-listings-container'>
 			<div className='listings-header'>
 				<div className='results-info'>
 					<span>
@@ -625,7 +629,10 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				</div>
 			</div>
 
-			<div className={`cars-container ${viewMode}-view`}>
+			<div
+				className={`cars-container car-listings-grid ${viewMode}-view`}
+				data-testid='car-listings-grid'
+			>
 				{cars.map((car) => (
 					<CarCard key={car._id} car={car} onClick={handleCarClick} />
 				))}

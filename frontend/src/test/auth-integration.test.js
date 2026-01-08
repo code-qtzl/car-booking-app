@@ -111,16 +111,27 @@ describe('Authentication Integration', () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				status: 200,
+				json: async () => ({
+					success: true,
+					user: {
+						emailId: 'user@test.com',
+						typeOfUser: 'CUSTOMER',
+					},
+				}),
 			});
 
 			const isValid = await authService.validateSession();
 			expect(isValid).toBe(true);
-			expect(fetchMock).toHaveBeenCalledWith('/api/cars?limit=1', {
-				headers: {
-					'x-user-id': 'user@test.com',
-					'Content-Type': 'application/json',
+			expect(fetchMock).toHaveBeenCalledWith(
+				'/api/login/validate-session',
+				{
+					method: 'GET',
+					headers: {
+						'x-user-id': 'user@test.com',
+						'Content-Type': 'application/json',
+					},
 				},
-			});
+			);
 		});
 
 		it('should invalidate session on 401 response', async () => {

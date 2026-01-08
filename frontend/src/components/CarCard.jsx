@@ -102,7 +102,17 @@ const CarCard = ({ car, onClick }) => {
 		<article
 			ref={cardRef}
 			className='car-card'
+			data-testid='car-card'
 			onClick={handleCardClick}
+			role='button'
+			aria-label={`View details for ${car.make} ${car.model} ${car.year}`}
+			tabIndex={0}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					handleCardClick();
+				}
+			}}
 			style={{ cursor: 'pointer' }}
 		>
 			<div className='car-image-container'>
