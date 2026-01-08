@@ -8,9 +8,7 @@ import '../styles/CustomerDashboard.css';
 function CustomerDashboard() {
 	const navigate = useNavigate();
 	const { user, logout, isAuthenticated } = useAuthContext();
-	const [filters, setFilters] = useState({
-		availabilityStatus: 'Available', // Only show available cars by default
-	});
+	const [filters, setFilters] = useState({});
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('make');
 
@@ -27,6 +25,7 @@ function CustomerDashboard() {
 	};
 
 	const handleFilterChange = (newFilters) => {
+		console.log('Filter change:', newFilters);
 		setFilters(newFilters);
 	};
 
@@ -92,8 +91,8 @@ function CustomerDashboard() {
 							onFilterChange={handleFilterChange}
 							onSearch={handleSearch}
 							onSortChange={handleSortChange}
-							currentFilters={filters}
-							currentSearch={searchQuery}
+							initialFilters={filters}
+							initialSearchQuery={searchQuery}
 							currentSort={sortBy}
 						/>
 					</section>

@@ -153,6 +153,8 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 			params.append('skip', (pageToFetch - 1) * limit);
 
 			const queryString = params.toString();
+			console.log('Making API call to:', `/api/cars?${queryString}`);
+			console.log('Filters:', filters);
 
 			// Enhanced cache key with better collision avoidance
 			const cacheKey = `cars-${queryString}-${pageToFetch}`;
@@ -197,6 +199,8 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 				headers,
 			});
 
+			console.log('API Response:', response.data);
+
 			if (response.data.success) {
 				const responseData = {
 					data: response.data.data || [],
@@ -227,6 +231,12 @@ const CarListings = ({ filters = {}, searchQuery = '', sortBy = 'make' }) => {
 			}
 		} catch (err) {
 			console.error('Error fetching cars:', err);
+			console.error('Error details:', {
+				message: err.message,
+				response: err.response,
+				status: err.response?.status,
+				data: err.response?.data,
+			});
 			const errorMessage = formatErrorMessage(err);
 			setError(errorMessage);
 			if (resetList) {

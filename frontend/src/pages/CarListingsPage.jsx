@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../contexts/AuthContext';
 import CarListings from '../components/CarListings';
 import SearchFilters from '../components/SearchFilters';
+import '../styles/CarListingsPage.css';
 
 const CarListingsPage = () => {
 	const [searchParams] = useSearchParams();
+	const navigate = useNavigate();
+	const { isAuthenticated, user, logout } = useAuthContext();
 	const [filters, setFilters] = useState({});
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('make');
@@ -45,11 +49,31 @@ const CarListingsPage = () => {
 		setSortBy(newSortBy);
 	};
 
+	const handleLogout = () => {
+		logout();
+		navigate('/');
+	};
+
 	return (
 		<div className='car-listings-page'>
 			<header className='page-header'>
-				<h1>Available Cars</h1>
-				<p>Browse our selection of rental vehicles</p>
+				<div className='header-content'>
+					<div className='header-text'>
+						<h1>Available Cars</h1>
+						<p>Browse our selection of rental vehicles</p>
+					</div>
+					{isAuthenticated && (
+						<div className='header-actions'>
+							<span className='user-email'>{user?.emailId}</span>
+							<button
+								onClick={handleLogout}
+								className='logout-btn'
+							>
+								Logout
+							</button>
+						</div>
+					)}
+				</div>
 			</header>
 
 			<main className='page-content'>

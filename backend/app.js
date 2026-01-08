@@ -1,6 +1,6 @@
 const express = require('express');
 const userRoutes = require('./router/user.router');
-const carRoutes = require('./router/car.router.simple');
+const carRoutes = require('./router/car.router');
 const { errorHandler } = require('./middleware/auth.middleware');
 const { enhancedErrorHandler } = require('./middleware/validation.middleware');
 const {
