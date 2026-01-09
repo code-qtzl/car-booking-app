@@ -155,19 +155,6 @@ capstone-car-booking-app/
 -   Responsive design
 -   API documentation
 
-## API Documentation
-
-API documentation is available in `backend/docs/api-documentation.md`
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests
-5. Submit a pull request
-
 ## License
 
-This project is licensed under the ISC License.</content>
-<parameter name="filePath">/Users/andreszepeda/Projects/purdue/Capstone Project/README.md
+This project is licensed under the ISC License.
